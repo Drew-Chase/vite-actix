@@ -1,5 +1,6 @@
 
 # Vite Actix
+![badge](https://github.com/Drew-Chase/vite-actix/actions/workflows/rust.yml/badge.svg)
 
 Vite Actix is a library designed to enable seamless integration of the **Vite development server** with the **Actix web framework**. It provides proxying functionality to forward HTTP requests to a local Vite server during development, enabling support for features like **hot module replacement (HMR)**, while maintaining a production-ready design for serving static files.
 
