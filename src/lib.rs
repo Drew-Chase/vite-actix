@@ -171,8 +171,8 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
             .current_dir(working_dir) // Set the working directory as determined above.
             .arg("--port")
             .arg(std::env::var("VITE_PORT").unwrap_or("5173".to_string()))
-//            .arg("-l")
-//            .arg("warn")
+            .arg("-l")
+            .arg("warn")
             .spawn()?, // Spawn the subprocess and propagate any errors.
     )
 }
