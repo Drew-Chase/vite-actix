@@ -426,7 +426,7 @@ where
             // Add a default service to catch all unmatched routes and proxy them to Vite.
             self.default_service(web::route().to(proxy_to_vite))
                 // Route requests for static assets to the Vite server (e.g., "/assets/<file>").
-                .service(web::resource("/assets/{file:.*}").route(web::get().to(proxy_to_vite)))
+                .service(web::resource("/{file:.*}").route(web::get().to(proxy_to_vite)))
                 // Route requests for Node modules to the Vite server (e.g., "/node_modules/<file>").
                 .service(
                     web::resource("/node_modules/{file:.*}").route(web::get().to(proxy_to_vite)),
