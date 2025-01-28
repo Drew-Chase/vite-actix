@@ -1,6 +1,6 @@
 [package]
 name = "vite-actix"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A library for integrating vite dev server to actix web server."
 repository = "https://github.com/Drew-Chase/vite-actix"
@@ -9,9 +9,9 @@ readme = "README.MD"
 autoexamples = true
 
 [dependencies]
-actix-web = "4.9.0"
-futures-util = "0.3.31"
+actix-web = { version = "4.9.0", optional = false }
+futures-util = { version = "0.3.31", optional = false }
 log = { version = "0.4.25", optional = false }
-awc = "3.5.1"
-anyhow = "1.0.95"
+awc = {version =  "3.5.1", optional = false }
+anyhow = { version = "1.0.95", optional = false }
 
