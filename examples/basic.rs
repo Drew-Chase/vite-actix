@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
 use anyhow::Result;
-use vite_actix::{start_vite_server, AppConfig};
+use vite_actix::{start_vite_server, ViteAppFactory};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -20,14 +20,13 @@ async fn main() -> Result<()> {
         App::new()
             // Define an API route (e.g., "/api/") that returns an HTTP 200 OK response.
             .route("/api/", web::get().to(HttpResponse::Ok))
-
             // Configure the app to proxy requests to the Vite dev server.
             // This is primarily useful during development for features like hot module replacement (HMR).
             .configure_vite()
     })
-        // Bind the Actix server to the address and port "127.0.0.1:8080".
-        .bind("127.0.0.1:8080".to_string())?
-        .run(); // Start the server asynchronously.
+    // Bind the Actix server to the address and port "127.0.0.1:8080".
+    .bind("127.0.0.1:8080".to_string())?
+    .run(); // Start the server asynchronously.
 
     // Debug configuration: Start the Vite development server only in debug mode.
     if cfg!(debug_assertions) {
