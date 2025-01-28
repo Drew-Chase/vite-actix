@@ -66,7 +66,7 @@ Follow these steps to integrate Vite with an Actix application:
    ```rust
    use actix_web::{web, App, HttpResponse, HttpServer};
    use anyhow::Result;
-   use vite_actix::{start_vite_server, AppConfig};
+   use vite_actix::{start_vite_server, ViteAppFactory};
 
    #[actix_web::main]
    async fn main() -> Result<()> {
