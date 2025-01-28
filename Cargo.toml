@@ -5,6 +5,7 @@ edition = "2021"
 description = "A library for integrating vite dev server to actix web server."
 repository = "https://github.com/Drew-Chase/vite-actix"
 license-file = "LICENSE"
+readme = "README.MD"
 autoexamples = true
 
 [dependencies]
