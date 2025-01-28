@@ -222,7 +222,7 @@ pub fn try_find_vite_dir() -> Option<String> {
 /// This trait provides a method `configure_vite` to configure a web application
 /// for proxying requests to the Vite development server during development,
 /// while leaving the application unchanged in production.
-pub trait AppConfig {
+pub trait ViteAppFactory {
     /// Configures the application to integrate with a Vite development proxy.
     ///
     /// This method configures the application to forward requests to a Vite
@@ -238,7 +238,7 @@ pub trait AppConfig {
 }
 
 // Implementation of the `AppConfig` trait for Actix `App` instances.
-impl<T> AppConfig for App<T>
+impl<T> ViteAppFactory for App<T>
 where
     T: actix_web::dev::ServiceFactory<
         actix_web::dev::ServiceRequest, // Type of the incoming HTTP request.
