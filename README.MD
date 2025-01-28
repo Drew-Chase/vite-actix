@@ -1,5 +1,5 @@
-
 # Vite Actix
+
 ![badge](https://github.com/Drew-Chase/vite-actix/actions/workflows/rust.yml/badge.svg)
 
 Vite Actix is a library designed to enable seamless integration of the **Vite development server** with the **Actix web framework**. It provides proxying functionality to forward HTTP requests to a local Vite server during development, enabling support for features like **hot module replacement (HMR)**, while maintaining a production-ready design for serving static files.
@@ -45,7 +45,7 @@ or using git
 
 ```toml
 [dependencies]
-vite-actix = {git = "https://github.com/Drew-Chase/vite-actix.git"}
+vite-actix = { git = "https://github.com/Drew-Chase/vite-actix.git" }
 ```
 
 ---
@@ -103,10 +103,10 @@ Follow these steps to integrate Vite with an Actix application:
 
 ### Environment Variables
 
-| Variable          | Default Value | Description                                                                 |
-|--------------------|---------------|-----------------------------------------------------------------------------|
-| `VITE_WORKING_DIR` | `.`           | Specifies the directory containing `vite.config.ts` (or similar config).    |
-| `VITE_PORT`        | `5173`        | Configures the port that the Vite dev server listens on.                    |
+| Variable           | Default Value | Description                                                              |
+|--------------------|---------------|--------------------------------------------------------------------------|
+| `VITE_WORKING_DIR` | `.`           | Specifies the directory containing `vite.config.ts` (or similar config). |
+| `VITE_PORT`        | `5173`        | Configures the port that the Vite dev server listens on.                 |
 
 ### Proxy Rules
 
@@ -149,7 +149,7 @@ Contributions are welcome! Please follow these steps:
 
 ## Examples
 
-See the `/examples` directory for sample implementations, including a fully functional integration of Vite with an Actix service.
+See the [`/examples`](https://github.com/Drew-Chase/vite-actix/tree/master/examples) directory for sample implementations, including a fully functional integration of Vite with an Actix service.
 
 ---
 
