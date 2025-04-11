@@ -167,6 +167,8 @@ use actix_web::{web, App, Error, HttpRequest, HttpResponse};
 use awc::Client;
 use futures_util::StreamExt;
 use log::{debug, error};
+use std::env::current_dir;
+
 // The maximum payload size allowed for forwarding requests and responses.
 //
 // This constant defines the maximum size (in bytes) for the request and response payloads
@@ -315,7 +317,7 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 
     // Vite installation could have multiple paths; using the last occurrence is a safeguard.
     let vite = vite
-        .split("\n") // Split the results line by line.
+        .split("\n") // Split the result line by line.
         .collect::<Vec<_>>() // Collect lines into a vector of strings.
         .last() // Take the last entry in the result list.
         .expect("Failed to get vite executable") // Panic if the vector for some reason is empty.
@@ -328,27 +330,57 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
     // 2. Fallback to the current directory ('./') if none is found.
     let working_dir = std::env::var("VITE_WORKING_DIR") // Tries the environment variable
         .unwrap_or(
-        try_find_vite_dir() // Then tries to automagically find the vite directory
-            .unwrap_or(
-            std::env::current_dir() // Then will attempt to use the current working directory
-                // At this point, we've given up, as a hail mary we are
-                // just going to try to use the "." directory 
-                // If that doesn't work, you might be SOL.
-                .map(|i| i.to_str().unwrap_or(".").to_string())
-                .unwrap_or(".".to_string()),
-        ),
-    );
+            try_find_vite_dir() // Then tries to automatically find the vite directory
+                .unwrap_or(
+                    current_dir() // Then will attempt to use the current working directory
+                        // At this point, we've given up, as a hail mary we are
+                        // just going to try to use the "." directory
+                        // If that doesn't work, you might be SOL.
+                        .map(|i| i.to_str().unwrap_or(".").to_string())
+                        .unwrap_or(".".to_string()),
+                ),
+        );
+
+    let mut vite_process = std::process::Command::new(vite) // Start command using the Vite executable.
+        .current_dir(working_dir) // Set the working directory as determined above.
+        .arg("--port")
+        .arg(std::env::var("VITE_PORT").unwrap_or("5173".to_string()))
+        .stdout(std::process::Stdio::piped()) // Capture stdout.
+        .spawn()?; // Spawn the subprocess and propagate any errors.
+
+    // Wait for the Vite server to finish starting up.
+
+    // Create a buffered reader to capture the output from the Vite process.
+    let vite_stdout = vite_process
+        .stdout
+        .take()
+        .ok_or_else(|| anyhow::Error::msg("Failed to capture Vite process stdout"))?;
+
+    use std::io::BufRead;
+    let mut reader = std::io::BufReader::new(vite_stdout);
+    let mut line = String::new();
+
+    loop {
+        // Check each line of the output for the expected pattern.
+        line.clear();
+        match reader.read_line(&mut line) {
+            Ok(0) => continue, // Ignore empty lines
+            Ok(_) => {
+                line = line.trim().to_string();
+                debug!("{}", line); // Log each line of output using the debug level.
+                if  line.contains("ready in") {
+                    return Ok(vite_process); // Exit the function once the string is found.
+                }
+            }
+            Err(err) => {
+                error!("Failed to read line from Vite process: {}", err);
+                break;
+            }
+        }
+    }
 
     // Start the Vite server with the determined executable and working directory.
-    Ok(
-        std::process::Command::new(vite) // Start command using Vite executable.
-            .current_dir(working_dir) // Set the working directory as determined above.
-            .arg("--port")
-            .arg(std::env::var("VITE_PORT").unwrap_or("5173".to_string()))
-            .arg("-l")
-            .arg("warn")
-            .spawn()?, // Spawn the subprocess and propagate any errors.
-    )
+    Ok(vite_process)
 }
 
 /// Attempts to find the directory containing `vite.config.ts`
@@ -369,7 +401,7 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 /// ```
 pub fn try_find_vite_dir() -> Option<String> {
     // Get the current working directory. If unable to retrieve, return `None`.
-    let mut cwd = std::env::current_dir().ok()?;
+    let mut cwd = current_dir().ok()?;
 
     // Continue traversing upwards in the directory hierarchy until the root directory is reached.
     while cwd != std::path::Path::new("/") {
@@ -415,11 +447,11 @@ pub trait ViteAppFactory {
 impl<T> ViteAppFactory for App<T>
 where
     T: actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest, // Type of the incoming HTTP request.
-        Config = (),                    // No additional configuration is required.
-        Error = Error,                  // Type of the error produced by the service.
-        InitError = (),                 // No initialization error is expected.
-    >,
+            actix_web::dev::ServiceRequest, // Type of the incoming HTTP request.
+            Config = (),                    // No additional configuration is required.
+            Error = Error,                  // Type of the error produced by the service.
+            InitError = (),                 // No initialization error is expected.
+        >,
 {
     fn configure_vite(self) -> Self {
         if cfg!(debug_assertions) {
@@ -435,5 +467,17 @@ where
             // If not in development mode, return the application without any additional configuration.
             self
         }
+    }
+}
+
+pub fn set_vite_port(port: u16) {
+    unsafe {
+        std::env::set_var("VITE_PORT", port.to_string());
+    }
+}
+
+pub fn set_vite_working_dir(dir: &str) {
+    unsafe {
+        std::env::set_var("VITE_WORKING_DIR", dir);
     }
 }
