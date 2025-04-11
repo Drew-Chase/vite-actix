@@ -71,9 +71,13 @@ Follow these steps to integrate Vite with an Actix application:
    #[actix_web::main]
    async fn main() -> Result<()> {
        if cfg!(debug_assertions) {
-           // Specify Vite's working directory and port in development mode
-           std::env::set_var("VITE_WORKING_DIR", "./examples/wwwroot");
-           std::env::set_var("VITE_PORT", "3000");
+            // Set the working directory for Vite (change this to point to the directory with vite.config.(js|ts)).
+            // The library will try to automatically detect this if not explicitly set.
+            set_vite_working_dir("./examples/wwwroot");
+        
+            // Set the port Vite should use. By default, Vite uses port 5173.
+            // Changing this allows running your application with a custom Vite server port.
+            set_vite_port(3000);
        }
 
        let server = HttpServer::new(move || {
@@ -102,6 +106,9 @@ Follow these steps to integrate Vite with an Actix application:
 ## Configuration
 
 ### Environment Variables
+> #### Note:
+> Environment variables are no longer recommended to use in rust 2024 and are thus considered unsafe.   
+> Please use the functions `set_vite_port` and `set_vite_working_dir` instead.
 
 | Variable           | Default Value | Description                                                              |
 |--------------------|---------------|--------------------------------------------------------------------------|
