@@ -55,12 +55,7 @@ vite-actix = { git = "https://github.com/Drew-Chase/vite-actix.git" }
 ### Basic Configuration and Setup
 
 Follow these steps to integrate Vite with an Actix application:
-
-1. **Set Environment Variables (Optional)**:
-    - `VITE_WORKING_DIR`: Specifies the working directory containing `vite.config.[js|ts]`.
-    - `VITE_PORT`: Vite server's port (default is `5173`).
-
-2. **Example: Configuring Your Main Actix App**:
+1. **Example: Configuring Your Main Actix App**:
    Create a basic Actix application that includes Vite integration:
 
    ```rust
