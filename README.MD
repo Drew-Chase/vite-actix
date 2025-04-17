@@ -38,7 +38,7 @@ Add the library to your Rust project by including it in your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-vite-actix = "0.1.0"
+vite-actix = "0.2.1"
 ```
 
 or using git
@@ -66,18 +66,16 @@ Follow these steps to integrate Vite with an Actix application:
    ```rust
    use actix_web::{web, App, HttpResponse, HttpServer};
    use anyhow::Result;
-   use vite_actix::{start_vite_server, ViteAppFactory};
-
+   use vite_actix::{start_vite_server, ViteAppFactory, ProxyViteOptions};
+   
    #[actix_web::main]
    async fn main() -> Result<()> {
        if cfg!(debug_assertions) {
-            // Set the working directory for Vite (change this to point to the directory with vite.config.(js|ts)).
-            // The library will try to automatically detect this if not explicitly set.
-            set_vite_working_dir("./examples/wwwroot");
-        
-            // Set the port Vite should use. By default, Vite uses port 5173.
-            // Changing this allows running your application with a custom Vite server port.
-            set_vite_port(3000);
+            // Configure Vite options using the builder pattern
+            ProxyViteOptions::new()
+                .working_directory("./examples/wwwroot") // Directory containing vite.config.(js|ts)
+                .port(3000) // Custom port for Vite (default is 5173)
+                .build()?;
        }
 
        let server = HttpServer::new(move || {
@@ -101,19 +99,27 @@ Follow these steps to integrate Vite with an Actix application:
     - Use `vite-actix`'s `start_vite_server` function to automatically run the Vite server in development mode.
     - Static files and modules (such as `/assets/...`) are proxied to Vite when `cfg!(debug_assertions)` is true.
 
+4. **Advanced Vite Configuration Options**:
+   ```rust
+   // Example of additional Vite configuration options
+   if cfg!(debug_assertions) {
+       ProxyViteOptions::new()
+           .port(3000)                           // Custom Vite server port
+           .working_directory("./frontend")      // Custom working directory
+           .log_level(log::Level::Info)          // Configure log level
+           // OR disable logging entirely
+           // .disable_logging()
+           .build()?;
+   }
+   ```
+
 ---
 
 ## Configuration
 
-### Environment Variables
-> #### Note:
-> Environment variables are no longer recommended to use in rust 2024 and are thus considered unsafe.   
-> Please use the functions `set_vite_port` and `set_vite_working_dir` instead.
+### Using ProxyViteOptions Builder
 
-| Variable           | Default Value | Description                                                              |
-|--------------------|---------------|--------------------------------------------------------------------------|
-| `VITE_WORKING_DIR` | `.`           | Specifies the directory containing `vite.config.ts` (or similar config). |
-| `VITE_PORT`        | `5173`        | Configures the port that the Vite dev server listens on.                 |
+The recommended way to configure Vite integration is using the `ProxyViteOptions` builder pattern:
 
 ### Proxy Rules
 
