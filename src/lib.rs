@@ -45,7 +45,7 @@ async fn proxy_to_vite(
     // The constructed URL uses the same URI as the incoming request.
     let forward_url = format!(
         "http://localhost:{}{}",
-        std::env::var("VITE_PORT").unwrap_or("5173".to_string()),
+        ProxyViteOptions::global().port,
         req.uri()
     );
 
@@ -174,11 +174,9 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 
     let mut vite_process = std::process::Command::new(vite);
     vite_process.current_dir(&options.working_directory);
+    vite_process.arg("--port").arg(options.port.to_string());
     vite_process.stdout(std::process::Stdio::piped());
 
-    if let Some(port) = options.port {
-        vite_process.arg("--port").arg(port.to_string());
-    }
     let mut vite_process = vite_process.spawn()?;
 
     // Create a buffered reader to capture the output from the Vite process.

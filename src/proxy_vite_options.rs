@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 static PROXY_VITE_OPTIONS: OnceLock<ProxyViteOptions> = OnceLock::new();
 
 pub struct ProxyViteOptions {
-    pub port: Option<u16>,
+    pub port: u16,
     pub working_directory: String,
     pub log_level: Option<log::Level>,
 }
@@ -13,7 +13,7 @@ pub struct ProxyViteOptions {
 impl Default for ProxyViteOptions {
     fn default() -> Self {
         Self {
-            port: None,
+            port: 5173,
             working_directory: try_find_vite_dir().unwrap_or(String::from("./")),
             log_level: Some(Debug),
         }
@@ -25,7 +25,7 @@ impl ProxyViteOptions {
         Self::default()
     }
     pub fn port(mut self, port: u16) -> Self {
-        self.port = Some(port);
+        self.port = port;
         self
     }
     pub fn working_directory(mut self, working_directory: impl AsRef<str>) -> Self {
