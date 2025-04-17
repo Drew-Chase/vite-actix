@@ -1,23 +1,38 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
 use anyhow::Result;
+use log::{error, info};
 use vite_actix::proxy_vite_options::ProxyViteOptions;
 use vite_actix::start_vite_server;
 use vite_actix::vite_app_factory::ViteAppFactory;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    env_logger::builder().filter_level(log::LevelFilter::Debug).init();
-    // Debug configuration: Only execute the following block in debug mode.
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .format_timestamp(None)
+        .init();
     if cfg!(debug_assertions) {
-        ProxyViteOptions::new().build()?;
-    }
+        ProxyViteOptions::new()
+            .port(3000)
+            .working_directory("./")
+            .disable_logging() // Disable logging from the Vite server.
+            .log_level(log::Level::Warn) // Enables logging and sets the Vite server log level to "info".
+            .build()?;
 
-    // Debug configuration: Start the Vite development server only in debug mode.
-    if cfg!(debug_assertions) {
-        // Attempt to start the Vite server.
-        // The function will locate and execute the Vite executable, logging any errors if it fails.
-        #[allow(clippy::zombie_processes)]
-        start_vite_server().expect("Failed to start vite server");
+        std::thread::spawn(|| {
+            loop {
+                info!("Starting Vite server in development mode...");
+                let status = start_vite_server()
+                    .expect("Failed to start vite server")
+                    .wait()
+                    .expect("Vite server crashed!");
+                if !status.success() {
+                    error!("The vite server has crashed!");
+                } else {
+                    break;
+                }
+            }
+        });
     }
 
     // Create the Actix web server instance.
@@ -32,7 +47,6 @@ async fn main() -> Result<()> {
     // Bind the Actix server to the address and port "127.0.0.1:8080".
     .bind("127.0.0.1:8080".to_string())?
     .run(); // Start the server asynchronously.
-
 
     // Output the server information, indicating where the application is accessible.
     println!("Server running at http://127.0.0.1:8080/");

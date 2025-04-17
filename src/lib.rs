@@ -1,173 +1,14 @@
-//!
-//! # Vite Actix
-//! ![badge](https://github.com/Drew-Chase/vite-actix/actions/workflows/rust.yml/badge.svg)
-//!
-//! Vite Actix is a library designed to enable seamless integration of the **Vite development server** with the **Actix web framework**. It provides proxying functionality to forward HTTP requests to a local Vite server during development, enabling support for features like **hot module replacement (HMR)**, while maintaining a production-ready design for serving static files.
-//!
-//! ---
-//!
-//! ## Features
-//!
-//! - **Development Proxy**
-//!   Forwards unmatched HTTP requests to the Vite development server during development.
-//!
-//! - **Hot Module Replacement**
-//!   Enables fast reloads of assets and code during development, boosting productivity.
-//!
-//! - **Production-Ready**
-//!   Automatically serves pre-bundled assets in production without proxy overhead.
-//!
-//! - **Customizable Configuration**
-//!   Supports environment variables for customizing Vite integration (e.g., working directory and port).
-//!
-//! ---
-//!
-//! ## Getting Started
-//!
-//! ### Prerequisites
-//!
-//! Make sure you have the following tools installed:
-//!
-//! - **Rust** (version 1.65 or higher recommended)
-//! - **Node.js** (for Vite, version 18+ recommended)
-//! - **npm/yarn/pnpm** (for managing front-end dependencies)
-//!
-//! ### Installation
-//!
-//! Add the library to your Rust project by including it in your `Cargo.toml` file:
-//!
-//! ```toml
-//! [dependencies]
-//! vite-actix = "0.1.0"
-//! ```
-//!
-//! or using git
-//!
-//! ```toml
-//! [dependencies]
-//! vite-actix = {git = "https://github.com/Drew-Chase/vite-actix.git"}
-//! ```
-//!
-//! ---
-//!
-//! ## Usage
-//!
-//! ### Basic Configuration and Setup
-//!
-//! Follow these steps to integrate Vite with an Actix application:
-//!
-//! 1. **Set Environment Variables (Optional)**:
-//! - `VITE_WORKING_DIR`: Specifies the working directory containing `vite.config.[js|ts]`.
-//! - `VITE_PORT`: Vite server's port (default is `5173`).
-//!
-//! 2. **Example: Configuring Your Main Actix App**:
-//!    Create a basic Actix application that includes Vite integration:
-//!
-//! ```rust
-//! use actix_web::{web, App, HttpResponse, HttpServer};
-//! use anyhow::Result;
-//! use vite_actix::{start_vite_server, ViteAppFactory};
-//!
-//! #[actix_web::main]
-//! async fn main() -> Result<()> {
-//!     if cfg!(debug_assertions) {
-//!         // Specify Vite's working directory and port in development mode
-//!         std::env::set_var("VITE_WORKING_DIR", "./examples/wwwroot");
-//!         std::env::set_var("VITE_PORT", "3000");
-//!     }
-//!
-//!     let server = HttpServer::new(move || {
-//!         App::new()
-//!             .route("/api/", web::get().to(HttpResponse::Ok))
-//!             .configure_vite() // Enable Vite proxy during development
-//!     })
-//!         .bind("127.0.0.1:8080")?
-//!         .run();
-//!
-//!     if cfg!(debug_assertions) {
-//!         start_vite_server()?;
-//!     }
-//!
-//!     println!("Server running at http://127.0.0.1:8080/");
-//!     Ok(server.await?)
-//! }
-//! ```
-//!
-//! 3. **Run the Vite Dev Server**:
-//! - Use `vite-actix`'s `start_vite_server` function to automatically run the Vite server in development mode.
-//! - Static files and modules (such as `/assets/...`) are proxied to Vite when `cfg!(debug_assertions)` is true.
-//!
-//! ---
-//!
-//! ## Configuration
-//!
-//! ### Environment Variables
-//!
-//! | Variable          | Default Value | Description                                                                 |
-//! |--------------------|---------------|-----------------------------------------------------------------------------|
-//! | `VITE_WORKING_DIR` | `.`           | Specifies the directory containing `vite.config.ts` (or similar config).    |
-//! | `VITE_PORT`        | `5173`        | Configures the port that the Vite dev server listens on.                    |
-//!
-//! ### Proxy Rules
-//!
-//! The following routes are automatically proxied to the Vite dev server during development:
-//!
-//! - **Default Service**: Proxies all unmatched routes.
-//! - **Static Assets**: Requests for `/assets/...` are forwarded to the Vite server.
-//! - **Node Modules**: Resolves `/node_modules/...` through Vite.
-//!
-//! Ensure that your Vite configuration is consistent with the paths and routes used by your Actix web server.
-//!
-//! ---
-//!
-//! ## License
-//!
-//! This project is licensed under the GNU General Public License v3.0.
-//! See the [LICENSE](./LICENSE) file for details.
-//!
-//! ---
-//!
-//! ## Contributing
-//!
-//! Contributions are welcome! Please follow these steps:
-//!
-//! 1. Fork the repository.
-//! 2. Create a feature branch (`git checkout -b feature-name`).
-//! 3. Commit your changes (`git commit -m "Description of changes"`).
-//! 4. Push to the branch (`git push origin feature-name`).
-//! 5. Open a pull request.
-//!
-//! ---
-//!
-//! ## Repository & Support
-//!
-//! - **Repository**: [Vite Actix GitHub](https://github.com/Drew-Chase/vite-actix)
-//! - **Issues**: Use the GitHub issue tracker for bug reports and feature requests.
-//! - **Contact**: Reach out to the maintainer via the email listed in the repository.
-//!
-//! ---
-//!
-//! ## Examples
-//!
-//! See the [`/examples`](https://github.com/Drew-Chase/vite-actix/tree/master/examples) directory for sample implementations, including a fully functional integration of Vite with an Actix service.
-//!
-//! ---
-//!
-//! ## Acknowledgements
-//!
-//! - **Rust** for providing the ecosystem to build fast, secure web backends.
-//! - **Vite** for its cutting-edge tooling in front-end development.
-//!
-//! ---
-//!
-//! Enjoy using **Vite Actix** for your next project! If you encounter any issues, feel free to open a ticket on GitHub. 🛠️
+#![doc = include_str!("../README.md")]
 
+pub mod proxy_vite_options;
+pub mod vite_app_factory;
+
+use crate::proxy_vite_options::ProxyViteOptions;
 use actix_web::error::ErrorInternalServerError;
-use actix_web::{web, App, Error, HttpRequest, HttpResponse};
+use actix_web::{web, Error, HttpRequest, HttpResponse};
 use awc::Client;
 use futures_util::StreamExt;
-use log::{debug, error};
-use std::env::current_dir;
+use log::{debug, error, info, trace, warn};
 
 // The maximum payload size allowed for forwarding requests and responses.
 //
@@ -177,7 +18,7 @@ use std::env::current_dir;
 // Currently, it is set to 1 GB.
 const MAX_PAYLOAD_SIZE: usize = 1024 * 1024 * 1024; // 1 GB
 
-// Proxies requests to the Vite development server.
+// Proxy requests to the Vite development server.
 //
 // This function forwards incoming requests to a local Vite server running on port 3000.
 // It buffers the entire request payload and response payload to avoid partial transfers.
@@ -288,6 +129,10 @@ async fn proxy_to_vite(
 /// # Platform-Specific
 /// - On Windows, it uses `where` to find the `vite` executable.
 /// - On other platforms, it uses `which`.
+///
+/// # Clippy:
+/// You may want to allow zombie processes in your code.   
+/// `#[allow(clippy::zombie_processes)]`
 pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
     #[cfg(target_os = "windows")]
     let find_cmd = "where"; // Use `where` on Windows to find the executable location.
@@ -325,30 +170,16 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 
     debug!("found vite at: {:?}", vite); // Log the found Vite path for debugging.
 
-    // Set the working directory for the Vite server. Use the environment variable if set, or:
-    // 1. Try to find the directory containing `vite.config.ts`.
-    // 2. Fallback to the current directory ('./') if none is found.
-    let working_dir = std::env::var("VITE_WORKING_DIR") // Tries the environment variable
-        .unwrap_or(
-            try_find_vite_dir() // Then tries to automatically find the vite directory
-                .unwrap_or(
-                    current_dir() // Then will attempt to use the current working directory
-                        // At this point, we've given up, as a hail mary we are
-                        // just going to try to use the "." directory
-                        // If that doesn't work, you might be SOL.
-                        .map(|i| i.to_str().unwrap_or(".").to_string())
-                        .unwrap_or(".".to_string()),
-                ),
-        );
+    let options = ProxyViteOptions::global();
 
-    let mut vite_process = std::process::Command::new(vite) // Start command using the Vite executable.
-        .current_dir(working_dir) // Set the working directory as determined above.
-        .arg("--port")
-        .arg(std::env::var("VITE_PORT").unwrap_or("5173".to_string()))
-        .stdout(std::process::Stdio::piped()) // Capture stdout.
-        .spawn()?; // Spawn the subprocess and propagate any errors.
+    let mut vite_process = std::process::Command::new(vite);
+    vite_process.current_dir(&options.working_directory);
+    vite_process.stdout(std::process::Stdio::piped());
 
-    // Wait for the Vite server to finish starting up.
+    if let Some(port) = options.port {
+        vite_process.arg("--port").arg(port.to_string());
+    }
+    let mut vite_process = vite_process.spawn()?;
 
     // Create a buffered reader to capture the output from the Vite process.
     let vite_stdout = vite_process
@@ -367,8 +198,15 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
             Ok(0) => continue, // Ignore empty lines
             Ok(_) => {
                 line = line.trim().to_string();
-                debug!("{}", line); // Log each line of output using the debug level.
-                if  line.contains("ready in") {
+                match options.log_level {
+                    None => {}
+                    Some(log::Level::Trace) => trace!("{}", line),
+                    Some(log::Level::Debug) => debug!("{}", line),
+                    Some(log::Level::Info) => info!("{}", line),
+                    Some(log::Level::Warn) => warn!("{}", line),
+                    Some(log::Level::Error) => error!("{}", line),
+                }
+                if line.contains("ready in") && line.contains("ms") && line.contains("VITE") {
                     return Ok(vite_process); // Exit the function once the string is found.
                 }
             }
@@ -381,103 +219,4 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 
     // Start the Vite server with the determined executable and working directory.
     Ok(vite_process)
-}
-
-/// Attempts to find the directory containing `vite.config.ts`
-/// by traversing the filesystem upwards from the current working directory.
-///
-/// # Returns
-///
-/// Returns `Some(String)` with the path of the directory containing the `vite.config.[ts|js]` file,
-/// if found. Otherwise, returns `None` if the file is not located or an error occurs during traversal.
-///
-/// # Example
-/// ```no-rust
-/// if let Some(vite_dir) = try_find_vite_dir() {
-///     println!("Found vite.config.ts in directory: {}", vite_dir);
-/// } else {
-///     println!("vite.config.ts not found.");
-/// }
-/// ```
-pub fn try_find_vite_dir() -> Option<String> {
-    // Get the current working directory. If unable to retrieve, return `None`.
-    let mut cwd = current_dir().ok()?;
-
-    // Continue traversing upwards in the directory hierarchy until the root directory is reached.
-    while cwd != std::path::Path::new("/") {
-        // Check if 'vite.config.ts' exists in the current directory.
-        if cwd.join("vite.config.ts").exists() || cwd.join("vite.config.js").exists() {
-            // If found, convert the path to a `String` and return it.
-            return Some(cwd.to_str()?.to_string());
-        }
-        // Move to the parent directory if it exists.
-        if let Some(parent) = cwd.parent() {
-            cwd = parent.to_path_buf();
-        } else {
-            // Break the loop if the parent directory doesn't exist or if permissions were denied.
-            break;
-        }
-    }
-
-    // Return `None` if 'vite.config.[ts|js]' was not found.
-    None
-}
-
-/// Trait for configuring a Vite development proxy in an Actix web application.
-///
-/// This trait provides a method `configure_vite` to configure a web application
-/// for proxying requests to the Vite development server during development,
-/// while leaving the application unchanged in production.
-pub trait ViteAppFactory {
-    /// Configures the application to integrate with a Vite development proxy.
-    ///
-    /// This method configures the application to forward requests to a Vite
-    /// development server, enabling features such as hot module replacement (HMR)
-    /// during development. In a production environment, this configuration
-    /// typically has no effect, ensuring no unnecessary overhead when serving
-    /// static files or pre-compiled assets.
-    ///
-    /// # Returns
-    ///
-    /// Returns the modified application instance with the Vite proxy configuration applied.
-    fn configure_vite(self) -> Self;
-}
-
-// Implementation of the `AppConfig` trait for Actix `App` instances.
-impl<T> ViteAppFactory for App<T>
-where
-    T: actix_web::dev::ServiceFactory<
-            actix_web::dev::ServiceRequest, // Type of the incoming HTTP request.
-            Config = (),                    // No additional configuration is required.
-            Error = Error,                  // Type of the error produced by the service.
-            InitError = (),                 // No initialization error is expected.
-        >,
-{
-    fn configure_vite(self) -> Self {
-        if cfg!(debug_assertions) {
-            // Add a default service to catch all unmatched routes and proxy them to Vite.
-            self.default_service(web::route().to(proxy_to_vite))
-                // Route requests for static assets to the Vite server (e.g., "/assets/<file>").
-                .service(web::resource("/{file:.*}").route(web::get().to(proxy_to_vite)))
-                // Route requests for Node modules to the Vite server (e.g., "/node_modules/<file>").
-                .service(
-                    web::resource("/node_modules/{file:.*}").route(web::get().to(proxy_to_vite)),
-                )
-        } else {
-            // If not in development mode, return the application without any additional configuration.
-            self
-        }
-    }
-}
-
-pub fn set_vite_port(port: u16) {
-    unsafe {
-        std::env::set_var("VITE_PORT", port.to_string());
-    }
-}
-
-pub fn set_vite_working_dir(dir: &str) {
-    unsafe {
-        std::env::set_var("VITE_WORKING_DIR", dir);
-    }
 }
