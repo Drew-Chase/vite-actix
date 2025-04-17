@@ -1,6 +1,6 @@
 [package]
 name = "vite-actix"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "A library for integrating vite dev server to actix web server."
 repository = "https://github.com/Drew-Chase/vite-actix"
