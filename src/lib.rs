@@ -40,7 +40,11 @@ async fn proxy_to_vite(
 ) -> anyhow::Result<HttpResponse, Error> {
     // Create a new HTTP client instance for making requests to the Vite server.
     let client = Client::new();
-    let port = if let Some(port) = ProxyViteOptions::global().port {
+    
+    // Get a copy of the current global options
+    let options = ProxyViteOptions::global();
+    
+    let port = if let Some(port) = options.port {
         port
     } else {
         return Err(ErrorInternalServerError(
@@ -240,7 +244,12 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
                         let url = caps.name("url").unwrap().as_str();
                         let port = url.split(":").last().unwrap();
                         let port: u16 = port.parse().unwrap();
-                        ProxyViteOptions::update_port(port).expect("Unable to update port");
+                        
+                        if let Err(e) = ProxyViteOptions::update_port(port) {
+                            debug!("Failed to update Vite port to {}: {}", port, e);
+                        } else {
+                            debug!("Successfully updated Vite port to {}", port);
+                        }
                     }
                 }
                 Err(err) => {
