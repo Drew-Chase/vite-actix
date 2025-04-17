@@ -9,6 +9,7 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 use awc::Client;
 use futures_util::StreamExt;
 use log::{debug, error, info, trace, warn};
+use regex::Regex;
 
 // The maximum payload size allowed for forwarding requests and responses.
 //
@@ -39,15 +40,18 @@ async fn proxy_to_vite(
 ) -> anyhow::Result<HttpResponse, Error> {
     // Create a new HTTP client instance for making requests to the Vite server.
     let client = Client::new();
+    let port = if let Some(port) = ProxyViteOptions::global().port {
+        port
+    } else {
+        return Err(ErrorInternalServerError(
+            "Unable to get port, you may have to set the port manually",
+        ));
+    };
 
     // Construct the URL of the Vite server by reading the VITE_PORT environment variable,
     // defaulting to 5173 if the variable is not set.
     // The constructed URL uses the same URI as the incoming request.
-    let forward_url = format!(
-        "http://localhost:{}{}",
-        ProxyViteOptions::global().port,
-        req.uri()
-    );
+    let forward_url = format!("http://localhost:{}{}", port, req.uri());
 
     // Buffer the entire payload from the incoming request into body_bytes.
     // This accumulates all chunks of the request body until no more are received or
@@ -174,8 +178,12 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
 
     let mut vite_process = std::process::Command::new(vite);
     vite_process.current_dir(&options.working_directory);
-    vite_process.arg("--port").arg(options.port.to_string());
     vite_process.stdout(std::process::Stdio::piped());
+
+    if let Some(port) = options.port {
+        vite_process.arg("--port").arg(port.to_string());
+        //        vite_process.arg("--strictPort");
+    }
 
     let mut vite_process = vite_process.spawn()?;
 
@@ -185,17 +193,72 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
         .take()
         .ok_or_else(|| anyhow::Error::msg("Failed to capture Vite process stdout"))?;
 
-    use std::io::BufRead;
-    let mut reader = std::io::BufReader::new(vite_stdout);
-    let mut line = String::new();
+    // Clone options for the thread
+    let options_clone = options.clone();
 
-    loop {
-        // Check each line of the output for the expected pattern.
-        line.clear();
-        match reader.read_line(&mut line) {
-            Ok(0) => continue, // Ignore empty lines
-            Ok(_) => {
-                line = line.trim().to_string();
+    // Create a channel to signal when Vite is ready
+    let (tx, rx) = tokio::sync::mpsc::channel::<String>(100);
+
+    // Spawn a thread to handle stdout reading
+    std::thread::spawn(move || {
+        use std::io::BufRead;
+        let mut reader = std::io::BufReader::new(vite_stdout);
+        let mut line = String::new();
+
+        // Create a Tokio runtime for this thread to handle async operations
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create Tokio runtime");
+
+        let regex = Regex::new(r"(?P<url>http://localhost:\d+).*").unwrap();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => {
+                    // End of file reached, the process has likely terminated
+                    debug!("End of output stream from Vite process, exiting reader loop");
+                    break;
+                }
+                Ok(_) => {
+                    let trimmed_line = line.trim().to_string();
+
+                    // Send the line through the channel
+                    // This will block until the message is sent,
+                    // but that's okay because we're in a dedicated thread
+                    if rt.block_on(tx.send(trimmed_line.clone())).is_err() {
+                        debug!("Failed to send log line, receiver was dropped");
+                        break;
+                    }
+                    let decolored_text =
+                        String::from_utf8(strip_ansi_escapes::strip(trimmed_line.as_str()))
+                            .unwrap();
+                    if decolored_text.contains("Local")
+                        && decolored_text.contains("http://localhost:")
+                    {
+                        let caps = regex.captures(&decolored_text).unwrap();
+                        let url = caps.name("url").unwrap().as_str();
+                        let port = url.split(":").last().unwrap();
+                        let port: u16 = port.parse().unwrap();
+                        ProxyViteOptions::update_port(port).expect("Unable to update port");
+                    }
+                }
+                Err(err) => {
+                    error!("Failed to read line from Vite process: {}", err);
+                    break;
+                }
+            }
+        }
+        debug!("Exiting Vite stdout reader thread");
+    });
+
+    // Spawn a task to receive messages and log them
+    // This will work if we're in an async context with a Tokio runtime
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        let options = options_clone.clone();
+        handle.spawn(async move {
+            let mut rx = rx;
+            while let Some(line) = rx.recv().await {
                 match options.log_level {
                     None => {}
                     Some(log::Level::Trace) => trace!("{}", line),
@@ -204,17 +267,33 @@ pub fn start_vite_server() -> anyhow::Result<std::process::Child> {
                     Some(log::Level::Warn) => warn!("{}", line),
                     Some(log::Level::Error) => error!("{}", line),
                 }
-                if line.contains("ready in") && line.contains("ms") && line.contains("VITE") {
-                    return Ok(vite_process); // Exit the function once the string is found.
+            }
+        });
+    } else {
+        // If we're not in a Tokio runtime context, we can create a thread to handle it
+        std::thread::spawn(move || {
+            // Create a runtime for this thread
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to create Tokio runtime");
+
+            rt.block_on(async move {
+                let mut rx = rx;
+                while let Some(line) = rx.recv().await {
+                    match options_clone.log_level {
+                        None => {}
+                        Some(log::Level::Trace) => trace!("{}", line),
+                        Some(log::Level::Debug) => debug!("{}", line),
+                        Some(log::Level::Info) => info!("{}", line),
+                        Some(log::Level::Warn) => warn!("{}", line),
+                        Some(log::Level::Error) => error!("{}", line),
+                    }
                 }
-            }
-            Err(err) => {
-                error!("Failed to read line from Vite process: {}", err);
-                break;
-            }
-        }
+            });
+        });
     }
 
-    // Start the Vite server with the determined executable and working directory.
+    // Return the process, which will continue running and logging output
     Ok(vite_process)
 }

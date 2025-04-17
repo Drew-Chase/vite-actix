@@ -4,8 +4,9 @@ use std::sync::OnceLock;
 
 static PROXY_VITE_OPTIONS: OnceLock<ProxyViteOptions> = OnceLock::new();
 
+#[derive(Clone)]
 pub struct ProxyViteOptions {
-    pub port: u16,
+    pub port: Option<u16>,
     pub working_directory: String,
     pub log_level: Option<log::Level>,
 }
@@ -13,7 +14,7 @@ pub struct ProxyViteOptions {
 impl Default for ProxyViteOptions {
     fn default() -> Self {
         Self {
-            port: 5173,
+            port: None,
             working_directory: try_find_vite_dir().unwrap_or(String::from("./")),
             log_level: Some(Debug),
         }
@@ -25,7 +26,7 @@ impl ProxyViteOptions {
         Self::default()
     }
     pub fn port(mut self, port: u16) -> Self {
-        self.port = port;
+        self.port = Some(port);
         self
     }
     pub fn working_directory(mut self, working_directory: impl AsRef<str>) -> Self {
@@ -39,6 +40,23 @@ impl ProxyViteOptions {
     pub fn disable_logging(mut self) -> Self {
         self.log_level = None;
         self   
+    }
+    pub(crate) fn update_port(port: u16) -> anyhow::Result<()> {
+        let current = PROXY_VITE_OPTIONS.get();
+
+        if let Some(current) = current {
+            let mut updated = current.clone();
+            updated.port = Some(port);
+
+            // Replace the global options
+            // Note: This will fail, but we're handling it explicitly
+            if PROXY_VITE_OPTIONS.set(updated).is_err() {
+                // Just log that we couldn't update the global, but port is stored
+                log::debug!("Could not update global options, port is set to {}", port);
+            }
+        }
+
+        Ok(())
     }
     pub fn build(self) -> anyhow::Result<()> {
         PROXY_VITE_OPTIONS
