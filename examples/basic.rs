@@ -1,19 +1,19 @@
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{App, HttpResponse, HttpServer, web};
 use anyhow::Result;
-use vite_actix::proxy_vite_options::ProxyViteOptions;
-use vite_actix::start_vite_server;
 use vite_actix::vite_app_factory::ViteAppFactory;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    env_logger::builder().filter_level(log::LevelFilter::Debug).init();
-    // Debug configuration: Only execute the following block in debug mode.
-    if cfg!(debug_assertions) {
-        ProxyViteOptions::new().build()?;
-    }
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
 
-    // Debug configuration: Start the Vite development server only in debug mode.
-    if cfg!(debug_assertions) {
+    // Debug configuration: Only execute the following block in debug mode.
+    #[cfg(debug_assertions)]
+    {
+        use vite_actix::proxy_vite_options::ProxyViteOptions;
+        use vite_actix::start_vite_server;
+        ProxyViteOptions::new().build()?;
         // Attempt to start the Vite server.
         // The function will locate and execute the Vite executable, logging any errors if it fails.
         #[allow(clippy::zombie_processes)]
@@ -32,7 +32,6 @@ async fn main() -> Result<()> {
     // Bind the Actix server to the address and port "127.0.0.1:8080".
     .bind("127.0.0.1:8080".to_string())?
     .run(); // Start the server asynchronously.
-
 
     // Output the server information, indicating where the application is accessible.
     println!("Server running at http://127.0.0.1:8080/");
