@@ -13,10 +13,10 @@ async fn main() -> Result<()> {
         .init();
     if cfg!(debug_assertions) {
         ProxyViteOptions::new()
-            .port(3000)
-            .working_directory("./")
-            .disable_logging() // Disable logging from the Vite server.
-            .log_level(log::Level::Warn) // Enables logging and sets the Vite server log level to "info".
+            .port(8779)
+            .working_directory("./examples/wwwroot/")
+//            .disable_logging() // Disable logging from the Vite server.
+            .log_level(log::Level::Debug) // Enables logging and sets the Vite server log level to "info".
             .build()?;
 
         std::thread::spawn(|| {
