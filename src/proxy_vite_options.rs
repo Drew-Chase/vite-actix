@@ -26,55 +26,58 @@ impl ProxyViteOptions {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
+        Self::update_port(port).ok();
         self
     }
-    
+
     pub fn working_directory(mut self, working_directory: impl AsRef<str>) -> Self {
         self.working_directory = working_directory.as_ref().to_string();
         self
     }
-    
+
     pub fn log_level(mut self, log_level: log::Level) -> Self {
         self.log_level = Some(log_level);
         self
     }
-    
+
     pub fn disable_logging(mut self) -> Self {
         self.log_level = None;
-        self   
+        self
     }
-    
+
     // Update port without cloning the entire object
     pub fn update_port(port: u16) -> anyhow::Result<()> {
         let options = get_or_init_mutex();
-        let mut options_guard = options.lock()
+        let mut options_guard = options
+            .lock()
             .map_err(|_| anyhow::Error::msg("Failed to lock proxy options for port update"))?;
-        
+
         options_guard.port = Some(port);
         log::debug!("Updated global options port to {}", port);
-        
+
         Ok(())
     }
-    
+
     // Initialize or update global options
     pub fn build(self) -> anyhow::Result<()> {
         let options = get_or_init_mutex();
-        let mut options_guard = options.lock()
+        let mut options_guard = options
+            .lock()
             .map_err(|_| anyhow::Error::msg("Failed to lock proxy options during build"))?;
-        
+
         // Update the global state with the new options
         *options_guard = self;
-        
+
         Ok(())
     }
-    
+
     // Get a clone of the current global options
     pub fn global() -> Self {
         let options = get_or_init_mutex();
-        
+
         match options.lock() {
             Ok(guard) => guard.clone(),
             Err(_) => {
@@ -87,7 +90,10 @@ impl ProxyViteOptions {
 
 // Helper function to initialize the mutex if needed and return a reference to it
 fn get_or_init_mutex() -> &'static Mutex<ProxyViteOptions> {
-    PROXY_VITE_OPTIONS.get_or_init(|| Mutex::new(ProxyViteOptions::default()))
+    PROXY_VITE_OPTIONS.get_or_init(|| {
+        log::warn!("No initial ProxyViteOptions found, initializing with default values");
+        Mutex::new(ProxyViteOptions::default())
+    })
 }
 
 /// Attempts to find the directory containing `vite.config.ts`
