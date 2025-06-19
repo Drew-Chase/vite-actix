@@ -47,3 +47,24 @@ where
         }
     }
 }
+impl<T> ViteAppFactory for actix_web::Scope<T>
+where
+    T: actix_web::dev::ServiceFactory<
+            actix_web::dev::ServiceRequest, // Type of the incoming HTTP request.
+            Config = (),                    // No additional configuration is required.
+            Error = Error,                  // Type of the error produced by the service.
+            InitError = (),                 // No initialization error is expected.
+        >,
+{
+    fn configure_vite(self) -> Self {
+        if cfg!(debug_assertions) {
+            self.default_service(web::route().to(proxy_to_vite))
+                .service(web::resource("/{file:.*}").route(web::get().to(proxy_to_vite)))
+                .service(
+                    web::resource("/node_modules/{file:.*}").route(web::get().to(proxy_to_vite)),
+                )
+        } else {
+            self
+        }
+    }
+}
