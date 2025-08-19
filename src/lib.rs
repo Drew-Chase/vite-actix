@@ -3,6 +3,7 @@
 pub mod proxy_vite_options;
 pub mod vite_app_factory;
 
+use std::time::Duration;
 use crate::proxy_vite_options::ProxyViteOptions;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
@@ -39,8 +40,8 @@ async fn proxy_to_vite(
     mut payload: web::Payload,
 ) -> anyhow::Result<HttpResponse, Error> {
     // Create a new HTTP client instance for making requests to the Vite server.
-    let client = Client::new();
-    
+    let client = Client::builder().timeout(Duration::from_secs(60)).finish();
+
     // Get a copy of the current global options
     let options = ProxyViteOptions::global();
     
